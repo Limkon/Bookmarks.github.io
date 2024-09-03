@@ -38,30 +38,88 @@
     </ul>
 
     <script>
+        const repo = 'your-repo';  // 你的GitHub仓库名
+        const owner = 'your-username';  // 你的GitHub用户名
+        const token = 'your-token';  // 你的GitHub Personal Access Token
+        const filePath = 'links.json';  // 根目录下的文件路径
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+
+        // 加载已有的链接
+        async function loadLinks() {
+            try {
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3.raw'  // 直接获取文件内容
+                    }
+                });
+                const links = await response.json();
+                if (Array.isArray(links)) {
+                    const linkList = document.getElementById('linkList');
+                    linkList.innerHTML = '';  // 清空当前列表
+                    links.forEach(link => {
+                        const listItem = document.createElement('li');
+                        const aTag = document.createElement('a');
+                        aTag.href = link.url;
+                        aTag.textContent = link.name;
+                        aTag.target = "_blank";
+                        listItem.appendChild(aTag);
+                        linkList.appendChild(listItem);
+                    });
+                }
+            } catch (error) {
+                console.error('加载链接时出错:', error);
+            }
+        }
+
+        // 保存新的链接
+        async function saveLink(newLink) {
+            try {
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                const data = await response.json();
+                const sha = data.sha;  // 获取当前文件的SHA值
+
+                const existingLinks = JSON.parse(atob(data.content));  // 解码base64并解析JSON
+                existingLinks.push(newLink);  // 添加新链接
+
+                const updatedContent = btoa(JSON.stringify(existingLinks, null, 2));  // 更新后的内容
+
+                await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        message: '更新链接列表',
+                        content: updatedContent,
+                        sha: sha  // 提交时必须包含当前文件的SHA
+                    })
+                });
+
+                loadLinks();  // 重新加载链接列表
+
+            } catch (error) {
+                console.error('保存链接时出错:', error);
+            }
+        }
+
         document.getElementById('linkForm').addEventListener('submit', function(event) {
-            event.preventDefault(); // 防止表单提交后刷新页面
+            event.preventDefault();  // 防止表单提交后刷新页面
 
             const name = document.getElementById('name').value;
             const url = document.getElementById('url').value;
 
             if (name && url) {
-                const linkList = document.getElementById('linkList');
-                
-                // 创建新链接的列表项
-                const listItem = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = url;
-                link.textContent = name;
-                link.target = "_blank"; // 在新标签页中打开链接
-                
-                listItem.appendChild(link);
-                linkList.appendChild(listItem);
+                const newLink = { name, url };
+                saveLink(newLink);
 
-                // 清空表单字段
                 document.getElementById('name').value = '';
                 document.getElementById('url').value = '';
             }
-        });
-    </script>
-</body>
-</html>
