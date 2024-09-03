@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动态链接列表</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="url"] {
+            padding: 5px;
+            margin-right: 10px;
+        }
+        input[type="submit"] {
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>添加新链接</h1>
+    <form id="linkForm">
+        <label for="name">名称：</label>
+        <input type="text" id="name" name="name" required placeholder="输入名称">
+        
+        <label for="url">地址：</label>
+        <input type="url" id="url" name="url" required placeholder="输入网址">
+        
+        <input type="submit" value="添加链接">
+    </form>
+
+    <h2>链接列表</h2>
+    <ul id="linkList">
+        <!-- 动态添加链接 -->
+    </ul>
+
+    <script>
+        document.getElementById('linkForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // 防止表单提交后刷新页面
+
+            const name = document.getElementById('name').value;
+            const url = document.getElementById('url').value;
+
+            if (name && url) {
+                const linkList = document.getElementById('linkList');
+                
+                // 创建新链接的列表项
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = url;
+                link.textContent = name;
+                link.target = "_blank"; // 在新标签页中打开链接
+                
+                listItem.appendChild(link);
+                linkList.appendChild(listItem);
+
+                // 清空表单字段
+                document.getElementById('name').value = '';
+                document.getElementById('url').value = '';
+            }
+        });
+    </script>
+</body>
+</html>
