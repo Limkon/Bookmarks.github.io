@@ -4,6 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>常用网页集合</title>
+    <style>
+        body {
+            background-color: #add8e6; /* 浅蓝色背景 */
+            font-family: Arial, sans-serif;
+        }
+        ul {
+            column-count: 3; /* 分成三列 */
+            column-gap: 20px;
+            padding-left: 20px;
+        }
+        li {
+            list-style: none;
+            counter-increment: link-counter; /* 设置计数器 */
+        }
+        li::before {
+            content: counter(link-counter) ". "; /* 给每个链接加上序号 */
+            font-weight: bold;
+        }
+        a {
+            text-decoration: none;
+            color: #0645ad;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
     <h1>链接列表</h1>
