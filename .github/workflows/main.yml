@@ -59,6 +59,12 @@ jobs:
             exit 1
           fi
 
+      - name: Debug Issue title and body
+        run: |
+          echo "Issue title: '${{ steps.issue.outputs.title }}'"
+          echo "Issue body: '${{ steps.issue.outputs.body }}'"
+
+
       - name: Commit changes
         run: |
           git config --global user.name "GitHub Actions"
