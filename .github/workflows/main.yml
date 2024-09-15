@@ -16,8 +16,10 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const title = context.payload.issue.title.toLowerCase();
-            const body = context.payload.issue.body.trim();
+            console.log("Debugging issue data...");
+            console.log(context.payload);  # 打印所有事件数据，便于调试
+            const title = context.payload.issue.title ? context.payload.issue.title.toLowerCase() : "";
+            const body = context.payload.issue.body ? context.payload.issue.body.trim() : "";
             return { title, body };
 
       - name: Debug Issue title and body
