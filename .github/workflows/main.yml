@@ -20,6 +20,11 @@ jobs:
             const body = context.payload.issue.body.trim();
             return { title, body };
 
+      - name: Debug Issue title and body
+        run: |
+          echo "Issue title: '${{ steps.issue.outputs.title }}'"
+          echo "Issue body: '${{ steps.issue.outputs.body }}'"
+
       - name: Update links.json
         id: update_links
         run: |
@@ -59,10 +64,7 @@ jobs:
             exit 1
           fi
 
-      - name: Debug Issue title and body
-        run: |
-          echo "Issue title: '${{ steps.issue.outputs.title }}'"
-          echo "Issue body: '${{ steps.issue.outputs.body }}'"
+     
 
 
       - name: Commit changes
