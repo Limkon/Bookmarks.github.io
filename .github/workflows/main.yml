@@ -1,6 +1,5 @@
-name: Update Links
+name: Update links.json from Issue
 
-# 监听 issues 打开事件
 on:
   issues:
     types: [opened]
@@ -8,33 +7,66 @@ on:
 jobs:
   update-links:
     runs-on: ubuntu-latest
-
     steps:
-    # Step 1: 检出仓库代码
-    - name: Check out the repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # Step 2: 提取 Issue 中的链接信息并更新 links.json 文件
-    - name: Update links.json
-      run: |
-        echo "Fetching new link from issue"
-        NEW_LINK=$(echo "${{ github.event.issue.body }}" | grep -Eo '(https?://[a-zA-Z0-9./?=_-]+)')
-        NEW_NAME=$(echo "${{ github.event.issue.title }}")
-        
-        if [ -z "$NEW_LINK" ]; then
-          echo "No valid link found in issue body."
-          exit 1
-        fi
+      - name: Get Issue details
+        id: issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = context.payload.issue.title.toLowerCase();
+            const body = context.payload.issue.body.trim();
+            return { title, body };
 
-        # 使用 jq 命令更新 links.json
-        jq ". += [{\"name\": \"$NEW_NAME\", \"url\": \"$NEW_LINK\"}]" links.json > updated_links.json
-        mv updated_links.json links.json
+      - name: Update links.json
+        id: update_links
+        run: |
+          echo "Fetching links.json..."
+          links_file="links.json"
 
-    # Step 3: 提交并推送更新
-    - name: Commit changes
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        git add links.json
-        git commit -m "Automatically updated links.json with new link from issue #${{ github.event.issue.number }}"
-        git push
+          # Load current links.json content
+          if [ ! -f "$links_file" ]; then
+            echo "links.json does not exist. Creating a new one."
+            echo "[]" > $links_file
+          fi
+
+          # Parse Issue data
+          TITLE="${{ steps.issue.outputs.title }}"
+          BODY="${{ steps.issue.outputs.body }}"
+
+          if [[ "$TITLE" == "add" ]]; then
+            # Extract name and url from the Issue body
+            NAME=$(echo $BODY | awk '{print $1}')
+            URL=$(echo $BODY | awk '{print $2}')
+
+            echo "Adding link: $NAME ($URL)"
+            
+            # Append the new link to the links.json
+            jq --arg name "$NAME" --arg url "$URL" '. += [{"name": $name, "url": $url}]' $links_file > tmp.$$.json && mv tmp.$$.json $links_file
+
+          elif [[ "$TITLE" == "del" ]]; then
+            NAME=$BODY
+
+            echo "Deleting link: $NAME"
+
+            # Remove the link with the specified name from links.json
+            jq --arg name "$NAME" 'del(.[] | select(.name == $name))' $links_file > tmp.$$.json && mv tmp.$$.json $links_file
+          else
+            echo "Invalid Issue title. Please use 'add' or 'del'."
+            exit 1
+          fi
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add links.json
+          git commit -m "Updated links.json from Issue #${{ github.event.issue.number }}"
+          git push
+
+      - name: Close Issue
+        uses: actions-ecosystem/action-close-issue@v1
+        with:
+          issue-number: ${{ github.event.issue.number }}
