@@ -6,68 +6,68 @@
     <title>常用网页集合</title>
     <style>
         body {
-            background-color: #add8e6; /* 浅蓝色背景 */
+            background-color: #ADD8E6; /* 浅蓝色背景 */
             font-family: Arial, sans-serif;
         }
-        ul {
-            column-count: 3; /* 分成三列 */
-            column-gap: 20px;
-            padding-left: 20px;
+        h1 {
+            text-align: center;
+            color: #333;
         }
-        li {
+        .container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 三列布局 */
+            gap: 20px;
+            padding: 20px;
+        }
+        .container ul {
             list-style: none;
-            counter-increment: link-counter; /* 设置计数器 */
+            padding: 0;
         }
-        li::before {
-            content: counter(link-counter) ". "; /* 给每个链接加上序号 */
-            font-weight: bold;
+        .container li {
+            margin-bottom: 10px;
+            font-size: 16px;
         }
-        a {
+        .container a {
             text-decoration: none;
-            color: #0645ad;
+            color: #007BFF;
         }
-        a:hover {
+        .container a:hover {
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <h1>链接列表</h1>
-    <ul>
-        <li><a href="https://blog.misaka.rest/" target="_blank">小破站</a></li>
-        <li><a href="https://github.com/MatsuriDayo/nekoray" target="_blank">nekorayPC端</a></li>
-        <li><a href="https://www.wireguard.com/" target="_blank">wireguard</a></li>
-        <li><a href="https://handbrake.fr/" target="_blank">视频压缩神器</a></li>
-        <li><a href="https://gopeed.com/zh-CN" target="_blank">Gopeed 一款支持全平台的下载器</a></li>
-        <li><a href="https://github.com/Tohrusky/Final2x/" target="_blank">.Final2x 图片放大工具</a></li>
-        <li><a href="https://api.github.com/users/limkon" target="_blank">查询github时间</a></li>
-        <li><a href="https://stock.hostmonit.com/CloudFlareYes" target="_blank">IP优选</a></li>
-        <li><a href="https://m3u8-player.com/" target="_blank">在线播放m3u8</a></li>
-        <li><a href="https://www.cloudflare-cn.com/ips/" target="_blank">Cloudflare pool</a></li>
-        <li><a href="https://whoer.net/zh" target="_blank">IP归属</a></li>
-        <li><a href="https://jiema.pub/" target="_blank">接码</a></li>
-        <li><a href="https://www.y2mate.com/en798" target="_blank">视频下载</a></li>
-        <li><a href="http://web1.cachefly.net/speedtest/index.html" target="_blank">测速</a></li>
-        <li><a href="https://scamalytics.com/" target="_blank">IP干净度检测</a></li>
-        <li><a href="https://9cai888.com/?p=580" target="_blank">播放源</a></li>
-        <li><a href="http://ct.vpan123.com/" target="_blank">城通网盘资源搜索</a></li>
-        <li><a href="https://next.itellyou.cn/Original/Index" target="_blank">系统下载</a></li>
-        <li><a href="http://www.liangup.com/archives/category/ebook/%e6%95%99%e7%a8%8b%e7%9b%b8%e5%85%b3/%e5%8c%bb%e5%ad%a6%e7%b3%bb%e5%88%97%e7%94%b5%e5%ad%90%e4%b9%a6/" target="_blank">中医书籍</a></li>
-        <li><a href="https://chat.openai.com/api/auth/session" target="_blank">chatgpt token</a></li>
-        <li><a href="https://savetwitter.net/zh-cn" target="_blank">twitter下载</a></li>
-        <li><a href="https://www.fenxm.com/966.html" target="_blank">分享迷</a></li>
-        <li><a href="https://lucyhuafang.blogspot.com/2023/11/3.html" target="_blank">免费节点合集</a></li>
-        <li><a href="https://chat-shared3.zhile.io/shared.html?v=2" target="_blank">chatgpt共享账号</a></li>
-        <li><a href="https://www.freeaday.com/" target="_blank">免费资源网</a></li>
-        <li><a href="https://lon-kjt5.onrender.com/crontab" target="_blank">青龙面板</a></li>
-        <li><a href="https://next.itellyou.cn/Original/" target="_blank">系统下载</a></li>
-        <li><a href="https://honeypdf.com/index.html" target="_blank">电子书之家</a></li>
-        <li><a href="http://new.tzymap.com/#/" target="_blank">投资云地图</a></li>
-        <li><a href="https://namso-gen.com/" target="_blank">信用卡号生成网站Namso-gen</a></li>
-        <li><a href="https://www.mrchecker.net/card-checker/ccn2/" target="_blank">信用卡校验测活网站MrChecker</a></li>
-        <li><a href="https://bincheck.io/zh" target="_blank">卡BIN查询网站</a></li>
-        <li><a href="https://www.meiguodizhi.com/" target="_blank">虚拟地址生成网站</a></li>
-        <li><a href="https://gofile.io/d/1329502c-14f1-47f8-853a-2e39dc702873" target="_blank">临时存储十天有效</a></li>
-    </ul>
+    <div class="container">
+        <ul id="linkList"></ul>
+    </div>
+
+    <script>
+        // 加载 links.json 文件并动态渲染链接列表
+        fetch('links.json')
+            .then(response => response.json())
+            .then(data => {
+                const linkList = document.getElementById('linkList');
+                let index = 1;
+
+                // 计算列数
+                const linksPerColumn = Math.ceil(data.length / 3);
+
+                // 创建三列的 ul 容器
+                const ulContainers = [document.createElement('ul'), document.createElement('ul'), document.createElement('ul')];
+                ulContainers.forEach(ul => document.querySelector('.container').appendChild(ul));
+
+                // 遍历 JSON 数据并添加到列表中
+                data.forEach((link, i) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `${index}. <a href="${link.url}" target="_blank">${link.name}</a>`;
+                    ulContainers[Math.floor(i / linksPerColumn)].appendChild(li);
+                    index++;
+                });
+            })
+            .catch(error => {
+                console.error('Error loading links:', error);
+            });
+    </script>
 </body>
 </html>
