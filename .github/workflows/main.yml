@@ -1,0 +1,40 @@
+name: Update Links
+
+# 监听 issues 打开事件
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  update-links:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: 检出仓库代码
+    - name: Check out the repository
+      uses: actions/checkout@v2
+
+    # Step 2: 提取 Issue 中的链接信息并更新 links.json 文件
+    - name: Update links.json
+      run: |
+        echo "Fetching new link from issue"
+        NEW_LINK=$(echo "${{ github.event.issue.body }}" | grep -Eo '(https?://[a-zA-Z0-9./?=_-]+)')
+        NEW_NAME=$(echo "${{ github.event.issue.title }}")
+        
+        if [ -z "$NEW_LINK" ]; then
+          echo "No valid link found in issue body."
+          exit 1
+        fi
+
+        # 使用 jq 命令更新 links.json
+        jq ". += [{\"name\": \"$NEW_NAME\", \"url\": \"$NEW_LINK\"}]" links.json > updated_links.json
+        mv updated_links.json links.json
+
+    # Step 3: 提交并推送更新
+    - name: Commit changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add links.json
+        git commit -m "Automatically updated links.json with new link from issue #${{ github.event.issue.number }}"
+        git push
