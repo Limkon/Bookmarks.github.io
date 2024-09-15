@@ -37,9 +37,10 @@ jobs:
           BODY="${{ steps.issue.outputs.body }}"
 
           if [[ "$TITLE" == "add" ]]; then
-            # Extract name and url from the Issue body
-            NAME=$(echo $BODY | awk '{print $1}')
-            URL=$(echo $BODY | awk '{print $2}')
+            # Replace all Chinese commas with English commas and split by comma
+            BODY=$(echo $BODY | sed 's/，/,/g')
+            NAME=$(echo $BODY | cut -d',' -f1)
+            URL=$(echo $BODY | cut -d',' -f2)
 
             echo "Adding link: $NAME ($URL)"
             
@@ -67,6 +68,9 @@ jobs:
           git push
 
       - name: Close Issue
-        uses: actions-ecosystem/action-close-issue@v1
-        with:
-          issue-number: ${{ github.event.issue.number }}
+        run: |
+          curl -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -d '{"state":"closed"}' \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}"
