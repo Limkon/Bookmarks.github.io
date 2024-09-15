@@ -14,10 +14,13 @@
             color: #333;
         }
         .container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 三列布局 */
-            gap: 20px;
+            display: flex;
+            justify-content: space-between; /* 三列均匀分布 */
             padding: 20px;
+        }
+        .container .column {
+            flex: 1;
+            margin: 0 10px;
         }
         .container ul {
             list-style: none;
@@ -39,7 +42,15 @@
 <body>
     <h1>链接列表</h1>
     <div class="container">
-        <ul id="linkList"></ul>
+        <div class="column">
+            <ul id="column1"></ul>
+        </div>
+        <div class="column">
+            <ul id="column2"></ul>
+        </div>
+        <div class="column">
+            <ul id="column3"></ul>
+        </div>
     </div>
 
     <script>
@@ -47,21 +58,18 @@
         fetch('links.json')
             .then(response => response.json())
             .then(data => {
-                const linkList = document.getElementById('linkList');
+                const columns = [document.getElementById('column1'), document.getElementById('column2'), document.getElementById('column3')];
                 let index = 1;
 
-                // 计算列数
+                // 计算每列的项数
                 const linksPerColumn = Math.ceil(data.length / 3);
 
-                // 创建三列的 ul 容器
-                const ulContainers = [document.createElement('ul'), document.createElement('ul'), document.createElement('ul')];
-                ulContainers.forEach(ul => document.querySelector('.container').appendChild(ul));
-
-                // 遍历 JSON 数据并添加到列表中
+                // 遍历 JSON 数据并添加到列中
                 data.forEach((link, i) => {
+                    const columnIndex = Math.floor(i / linksPerColumn);
                     const li = document.createElement('li');
                     li.innerHTML = `${index}. <a href="${link.url}" target="_blank">${link.name}</a>`;
-                    ulContainers[Math.floor(i / linksPerColumn)].appendChild(li);
+                    columns[columnIndex].appendChild(li);
                     index++;
                 });
             })
