@@ -7,38 +7,41 @@ REPO_NAME="bookmarks" # 仓库名称
 
 PAGE=1
 PER_PAGE=100
+AFTER_CURSOR=""
 
-# GraphQL 查询模板
-QUERY='{
-  repository(owner: "'$REPO_OWNER'", name: "'$REPO_NAME'") {
-    issues(states: CLOSED, first: 100, after: "'$AFTER_CURSOR'") {
-      edges {
-        node {
-          number
-          id
+while : ; do
+  # GraphQL 查询模板
+  QUERY=$(cat <<EOF
+  {
+    repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
+      issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
+        edges {
+          node {
+            number
+            id
+          }
         }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
     }
   }
-}'
+EOF
+)
 
-# GraphQL Mutation 模板
-MUTATION='mutation {
-  deleteIssue(input: {issueId: "ID"}) {
-    clientMutationId
-  }
-}'
-
-while : ; do
   # 执行 GraphQL 查询以获取关闭的 Issues
   RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Content-Type: application/json" \
-    -X POST -d '{"query": "'"${QUERY//\"/\\\"}"}' \
+    -X POST -d "{\"query\": \"$QUERY\"}" \
     "https://api.github.com/graphql")
+
+  # 检查 API 响应是否成功
+  if [ -z "$RESPONSE" ]; then
+    echo "Failed to retrieve issues. Empty response."
+    exit 1
+  fi
 
   # 解析 JSON 响应
   ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id')
@@ -54,11 +57,21 @@ while : ; do
   # 批量删除每个关闭的 Issue
   for ISSUE_ID in $ISSUES; do
     echo "Deleting Issue with ID $ISSUE_ID"
+
+    # GraphQL Mutation 模板
+    MUTATION=$(cat <<EOF
+    mutation {
+      deleteIssue(input: {issueId: "$ISSUE_ID"}) {
+        clientMutationId
+      }
+    }
+EOF
+)
     RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "Content-Type: application/json" \
-      -X POST -d '{"query": "'"${MUTATION//ID/$ISSUE_ID}"}' \
+      -X POST -d "{\"query\": \"$MUTATION\"}" \
       "https://api.github.com/graphql")
-    
+
     if [ "$RESPONSE" == "{}" ]; then
       echo "Successfully deleted Issue with ID $ISSUE_ID"
     else
