@@ -28,12 +28,12 @@ jobs:
           PER_PAGE=100
 
           # GraphQL 查询模板
-          QUERY='{
-            repository(owner: "'$REPO_OWNER'", name: "'$REPO_NAME'") {
-              issues(states: CLOSED, first: 100, after: "'$AFTER_CURSOR'") {
+          QUERY=$(cat <<EOF
+          {
+            repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
+              issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
                 edges {
                   node {
-                    number
                     id
                   }
                 }
@@ -43,14 +43,19 @@ jobs:
                 }
               }
             }
-          }'
+          }
+          EOF
+          )
 
           # GraphQL Mutation 模板
-          MUTATION='mutation {
+          MUTATION=$(cat <<EOF
+          mutation {
             deleteIssue(input: {issueId: "ID"}) {
               clientMutationId
             }
-          }'
+          }
+          EOF
+          )
 
           while : ; do
             # 执行 GraphQL 查询以获取关闭的 Issues
@@ -78,7 +83,7 @@ jobs:
               echo "Deleting Issue with ID $ISSUE_ID"
               RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                 -H "Content-Type: application/json" \
-                -X POST -d "{\"query\": \"mutation { deleteIssue(input: {issueId: \"$ISSUE_ID\"}) { clientMutationId } }\"}" \
+                -X POST -d "{\"query\": \"mutation { deleteIssue(input: {issueId: \\\"$ISSUE_ID\\\"}) { clientMutationId } }\"}" \
                 "https://api.github.com/graphql")
               
               if [ "$RESPONSE" == "{}" ]; then
