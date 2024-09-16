@@ -40,7 +40,7 @@ jobs:
         run: |
           echo "Issue title: '${{ steps.issue_details.outputs.title }}'"
           echo "Issue body: '${{ steps.issue_details.outputs.body }}'"
-        
+
       - name: Update links.json
         id: update_links
         run: |
@@ -75,10 +75,10 @@ jobs:
 
             # Remove the link with the specified name from links.json
             jq --arg name "$NAME" 'del(.[] | select(.name == $name))' $links_file > tmp.$$.json && mv tmp.$$.json $links_file
-
           else
             echo "Invalid Issue title. Please use 'add' or 'del'."
             exit 1
+          fi
 
       - name: Commit changes
         run: |
