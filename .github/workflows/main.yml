@@ -16,10 +16,11 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            console.log("Debugging issue data...");
-            console.log(context.payload);
-            const title = context.payload.issue.title ? context.payload.issue.title.toLowerCase() : "";
-            const body = context.payload.issue.body ? context.payload.issue.body.trim() : "";
+            const issue = context.payload.issue;
+            const title = issue.title ? issue.title.toLowerCase() : "";
+            const body = issue.body ? issue.body.trim() : "";
+            console.log("Title: " + title);
+            console.log("Body: " + body);
             return { title, body };
 
       - name: Debug Issue title and body
