@@ -15,7 +15,7 @@ jobs:
 
       - name: Delete closed issues
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}  # 使用正确的 Secret 名称
         run: |
           #!/bin/bash
 
@@ -40,8 +40,13 @@ jobs:
             # 批量删除每个关闭的 Issue
             for ISSUE in $ISSUES; do
               echo "Deleting Issue #$ISSUE"
-              curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-                "https://api.github.com/repos/$REPO/issues/$ISSUE"
+              RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+                "https://api.github.com/repos/$REPO/issues/$ISSUE")
+              if [ "$RESPONSE" -ne 204 ]; then
+                echo "Failed to delete Issue #$ISSUE. HTTP status code: $RESPONSE"
+              else
+                echo "Successfully deleted Issue #$ISSUE"
+              fi
             done
 
             PAGE=$((PAGE + 1))
