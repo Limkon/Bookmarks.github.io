@@ -21,7 +21,7 @@ jobs:
 
 # 设置 GitHub 个人访问令牌和仓库信息
 GITHUB_TOKEN="${GITHUB_TOKEN}"
-REPO="Limkon/bookmarks"  # 格式为 "owner/repo"
+REPO="Limkon/bookmarks" 
 
 PAGE=1
 PER_PAGE=100
