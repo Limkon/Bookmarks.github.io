@@ -7,41 +7,44 @@ REPO_NAME="bookmarks" # 仓库名称
 
 PAGE=1
 PER_PAGE=100
-AFTER_CURSOR=""
 
-while : ; do
-  # GraphQL 查询模板
-  QUERY=$(cat <<EOF
-  {
-    repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
-      issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
-        edges {
-          node {
-            number
-            id
-          }
+# GraphQL 查询模板
+QUERY='{
+  repository(owner: "'$REPO_OWNER'", name: "'$REPO_NAME'") {
+    issues(states: CLOSED, first: 100, after: "'$AFTER_CURSOR'") {
+      edges {
+        node {
+          number
+          id
         }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }
-EOF
-)
+}'
 
+# GraphQL Mutation 模板
+MUTATION='mutation {
+  deleteIssue(input: {issueId: "ID"}) {
+    clientMutationId
+  }
+}'
+
+while : ; do
   # 执行 GraphQL 查询以获取关闭的 Issues
   RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Content-Type: application/json" \
     -X POST -d "{\"query\": \"$QUERY\"}" \
     "https://api.github.com/graphql")
 
-  # 打印 API 响应以进行调试
+  # 打印 API 响应以便调试
   echo "API Response: $RESPONSE"
 
   # 解析 JSON 响应
-  ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id // empty')
+  ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id')
   HAS_NEXT_PAGE=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.hasNextPage')
   AFTER_CURSOR=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.endCursor')
 
@@ -54,21 +57,11 @@ EOF
   # 批量删除每个关闭的 Issue
   for ISSUE_ID in $ISSUES; do
     echo "Deleting Issue with ID $ISSUE_ID"
-
-    # GraphQL Mutation 模板
-    MUTATION=$(cat <<EOF
-    mutation {
-      deleteIssue(input: {issueId: "$ISSUE_ID"}) {
-        clientMutationId
-      }
-    }
-EOF
-)
     RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "Content-Type: application/json" \
-      -X POST -d "{\"query\": \"$MUTATION\"}" \
+      -X POST -d "{\"query\": \"mutation { deleteIssue(input: {issueId: \"$ISSUE_ID\"}) { clientMutationId } }\"}" \
       "https://api.github.com/graphql")
-
+    
     if [ "$RESPONSE" == "{}" ]; then
       echo "Successfully deleted Issue with ID $ISSUE_ID"
     else
