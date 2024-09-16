@@ -23,11 +23,11 @@ jobs:
           GITHUB_TOKEN="${GITHUB_TOKEN}"
           REPO_OWNER="Limkon"   # 仓库所有者
           REPO_NAME="bookmarks" # 仓库名称
-
+          
           PAGE=1
           PER_PAGE=100
           AFTER_CURSOR=""
-
+          
           # GraphQL 查询模板
           QUERY=$(cat <<EOF
 {
@@ -62,12 +62,12 @@ EOF
             # 执行 GraphQL 查询以获取关闭的 Issues
             RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
               -H "Content-Type: application/json" \
-              -X POST -d "{\"query\": \"$QUERY\"}" \
+              -X POST -d "{\"query\": \"${QUERY//\"/\\\"}\"}" \
               "https://api.github.com/graphql")
-
+            
             # 打印 API 响应以便调试
             echo "API Response: $RESPONSE"
-
+            
             # 解析 JSON 响应
             ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id // empty')
             HAS_NEXT_PAGE=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.hasNextPage')
@@ -81,7 +81,6 @@ EOF
 
             # 批量删除每个关闭的 Issue
             for ISSUE_ID in $ISSUES; do
-              # 生成 GraphQL Mutation
               CURRENT_MUTATION=$(cat <<EOF
 mutation {
   deleteIssue(input: {issueId: "$ISSUE_ID"}) {
@@ -94,7 +93,7 @@ EOF
               echo "Deleting Issue with ID $ISSUE_ID"
               DELETE_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                 -H "Content-Type: application/json" \
-                -X POST -d "{\"query\": \"$CURRENT_MUTATION\"}" \
+                -X POST -d "{\"query\": \"${CURRENT_MUTATION//\"/\\\"}\"}" \
                 "https://api.github.com/graphql")
               
               if [ "$DELETE_RESPONSE" == "{}" ]; then
