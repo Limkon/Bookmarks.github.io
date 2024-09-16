@@ -37,14 +37,11 @@ EOF
     -X POST -d "{\"query\": \"$QUERY\"}" \
     "https://api.github.com/graphql")
 
-  # 检查 API 响应是否成功
-  if [ -z "$RESPONSE" ]; then
-    echo "Failed to retrieve issues. Empty response."
-    exit 1
-  fi
+  # 打印 API 响应以进行调试
+  echo "API Response: $RESPONSE"
 
   # 解析 JSON 响应
-  ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id')
+  ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id // empty')
   HAS_NEXT_PAGE=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.hasNextPage')
   AFTER_CURSOR=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.endCursor')
 
