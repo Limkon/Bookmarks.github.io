@@ -13,13 +13,9 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y jq curl
 
-      - name: Prepare script
-        run: |
-          echo '#!/bin/bash' > delete-closed-issues.sh
-          echo 'echo "Hello World"' >> delete-closed-issues.sh
-          chmod +x delete-closed-issues.sh
-
       - name: Run script
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        run: ./delete-closed-issues.sh
+        run: |
+         chmod +x delete-closed-issues.sh
+         ./delete-closed-issues.sh
