@@ -1,4 +1,4 @@
-name: Update links.json from Issue
+name: update-links
 
 on:
   issues:
@@ -8,76 +8,85 @@ jobs:
   update-links:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v3
-
-      - name: Read Issue details from GITHUB_EVENT_PATH
-        id: issue_details
-        run: |
-          echo "Reading Issue details from GITHUB_EVENT_PATH"
-          ISSUE_TITLE=$(jq -r '.issue.title' $GITHUB_EVENT_PATH)
-          ISSUE_BODY=$(jq -r '.issue.body' $GITHUB_EVENT_PATH)
-          echo "Title: $ISSUE_TITLE"
-          echo "Body: $ISSUE_BODY"
-          echo "::set-output name=title::$ISSUE_TITLE"
-          echo "::set-output name=body::$ISSUE_BODY"
-
-      - name: Debug Issue title and body
-        run: |
-          echo "Issue title: '${{ steps.issue_details.outputs.title }}'"
-          echo "Issue body: '${{ steps.issue_details.outputs.body }}'"
-
-      - name: Update links.json
-        id: update_links
-        run: |
-          echo "Fetching links.json..."
-          links_file="links.json"
-
-          # Load current links.json content
-          if [ ! -f "$links_file" ]; then
-            echo "links.json does not exist. Creating a new one."
-            echo "[]" > $links_file
-          fi
-
-          # Parse Issue data
-          TITLE="${{ steps.issue_details.outputs.title }}"
-          BODY="${{ steps.issue_details.outputs.body }}"
-
-          if [[ "$TITLE" == "add" ]]; then
-            # Replace all Chinese commas with English commas and split by comma
-            BODY=$(echo $BODY | sed 's/，/,/g')
-            NAME=$(echo $BODY | cut -d',' -f1)
-            URL=$(echo $BODY | cut -d',' -f2)
-
-            echo "Adding link: $NAME ($URL)"
+      
+      - name: Process issue
+        uses: actions/github-script@v6
+        id: process_issue
+        with:
+          script: |
+            const issueTitle = context.payload.issue.title.trim();
+            const issueBody = context.payload.issue.body.trim();
             
-            # Append the new link to the links.json
-            jq --arg name "$NAME" --arg url "$URL" '. += [{"name": $name, "url": $url}]' $links_file > tmp.$$.json && mv tmp.$$.json $links_file
+            // 检查标题是否为 'add' 或 'del'
+            if (issueTitle !== 'add' && issueTitle !== 'del') {
+              core.setFailed('Invalid Issue title. Please use "add" or "del".');
+              return;
+            }
+            
+            // 处理 'add' 情况
+            if (issueTitle === 'add') {
+              const [name, url] = issueBody.split(',').map(item => item.trim());
+              
+              // 自动补齐网址
+              let formattedUrl = url;
+              if (!/^https?:\/\//i.test(url)) {
+                formattedUrl = `https://${url}`;
+              }
+              
+              // 打印调试信息
+              console.log(`Adding link: Name = ${name}, URL = ${formattedUrl}`);
+              
+              // 读取 links.json 文件
+              const fs = require('fs');
+              const path = './links.json';
+              let links = [];
 
-          elif [[ "$TITLE" == "del" ]]; then
-            NAME=$BODY
+              if (fs.existsSync(path)) {
+                links = JSON.parse(fs.readFileSync(path, 'utf-8'));
+              }
+              
+              // 添加新链接
+              links.push({ name, url: formattedUrl });
+              
+              // 保存更新后的 links.json 文件
+              fs.writeFileSync(path, JSON.stringify(links, null, 2));
+              console.log('Link added successfully!');
+            }
+            
+            // 处理 'del' 情况
+            if (issueTitle === 'del') {
+              const urlToDelete = issueBody.trim();
+              
+              // 读取 links.json 文件
+              const fs = require('fs');
+              const path = './links.json';
+              let links = [];
 
-            echo "Deleting link: $NAME"
-
-            # Remove the link with the specified name from links.json
-            jq --arg name "$NAME" 'del(.[] | select(.name == $name))' $links_file > tmp.$$.json && mv tmp.$$.json $links_file
-          else
-            echo "Invalid Issue title. Please use 'add' or 'del'."
-            exit 1
-          fi
-
+              if (fs.existsSync(path)) {
+                links = JSON.parse(fs.readFileSync(path, 'utf-8'));
+              }
+              
+              // 过滤掉要删除的链接
+              const newLinks = links.filter(link => link.url !== urlToDelete);
+              
+              // 保存更新后的 links.json 文件
+              fs.writeFileSync(path, JSON.stringify(newLinks, null, 2));
+              console.log('Link deleted successfully!');
+            }
+          
       - name: Commit changes
+        if: steps.process_issue.conclusion == 'success'
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
           git add links.json
-          git commit -m "Updated links.json from Issue #${{ github.event.issue.number }}"
+          git commit -m "Update links.json"
           git push
 
-      - name: Close Issue
-        run: |
-          curl -X PATCH \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -d '{"state":"closed"}' \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}"
+      - name: Close issue
+        if: steps.process_issue.conclusion == 'success'
+        uses: actions-ecosystem/action-close-issue@v1
+        with:
+          issue-number: ${{ github.event.issue.number }}
