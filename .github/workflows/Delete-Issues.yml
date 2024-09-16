@@ -1,36 +1,53 @@
-#!/bin/bash
+name: Delete All Issues
 
-# 设置仓库所有者和名称
-REPO_OWNER="Limkon"
-REPO_NAME="bookmarks"
+on:
+  workflow_dispatch:
 
-# GitHub API 令牌
-GITHUB_TOKEN="${MY_GITHUB_TOKEN}"
+jobs:
+  delete_issues:
+    runs-on: ubuntu-latest
 
-# GitHub API 端点
-API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues"
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
 
-# 获取所有的 Issue（包括开放和关闭）
-echo "Fetching all issues..."
-response=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}?state=all")
-echo "API response:"
-echo "$response"
+    - name: Delete All Issues
+      env:
+        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      run: |
+        #!/bin/bash
 
-issues=$(echo "$response" | jq -r '.[].number')
+        # 设置仓库所有者和名称
+        REPO_OWNER="Limkon"
+        REPO_NAME="bookmarks"
 
-if [ -z "$issues" ]; then
-  echo "No issues found."
-else
-  # 遍历所有的 Issue 并删除
-  for issue_number in $issues; do
-    echo "Deleting Issue #${issue_number}"
-    response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}/${issue_number}")
-    if [ "$response" -eq 204 ]; then
-      echo "Issue #${issue_number} deleted successfully."
-    else
-      echo "Failed to delete Issue #${issue_number}. Response code: ${response}"
-    fi
-  done
-fi
+        # GitHub API 令牌
+        GITHUB_TOKEN="${MY_GITHUB_TOKEN}"
 
-echo "All Issues have been processed."
+        # GitHub API 端点
+        API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues"
+
+        # 获取所有的 Issue（包括开放和关闭）
+        echo "Fetching all issues..."
+        response=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}?state=all")
+        echo "API response:"
+        echo "$response"
+
+        issues=$(echo "$response" | jq -r '.[].number')
+
+        if [ -z "$issues" ]; then
+          echo "No issues found."
+        else
+          # 遍历所有的 Issue 并删除
+          for issue_number in $issues; do
+            echo "Deleting Issue #${issue_number}"
+            response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}/${issue_number}")
+            if [ "$response" -eq 204 ]; then
+              echo "Issue #${issue_number} deleted successfully."
+            else
+              echo "Failed to delete Issue #${issue_number}. Response code: ${response}"
+            fi
+          done
+        fi
+
+        echo "All Issues have been processed."
