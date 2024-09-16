@@ -15,7 +15,6 @@ jobs:
 
       - name: Prepare script
         run: |
-          # 将脚本内容添加到工作目录中
           cat << 'EOF' > delete-closed-issues.sh
 #!/bin/bash
 
