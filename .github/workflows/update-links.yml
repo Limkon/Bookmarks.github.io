@@ -25,7 +25,7 @@ jobs:
           echo "::set-output name=body::$ISSUE_BODY"
           echo "::set-output name=user::$ISSUE_USER"
 
-      - name: Check if user is Limkon
+      - name: Close Issue for non-Limkon users
         if: ${{ steps.issue_details.outputs.user != 'Limkon' }}
         run: |
           echo "User is not Limkon. Closing Issue."
@@ -37,11 +37,13 @@ jobs:
           exit 0
 
       - name: Debug Issue title and body
+        if: ${{ steps.issue_details.outputs.user == 'Limkon' }}
         run: |
           echo "Issue title: '${{ steps.issue_details.outputs.title }}'"
           echo "Issue body: '${{ steps.issue_details.outputs.body }}'"
 
       - name: Update links.json
+        if: ${{ steps.issue_details.outputs.user == 'Limkon' }}
         id: update_links
         run: |
           echo "Fetching links.json..."
@@ -78,9 +80,9 @@ jobs:
           else
             echo "Invalid Issue title. Please use 'add' or 'del'."
             exit 1
-          fi
 
       - name: Commit changes
+        if: ${{ steps.issue_details.outputs.user == 'Limkon' }}
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
@@ -89,6 +91,7 @@ jobs:
           git push
 
       - name: Close Issue
+        if: ${{ steps.issue_details.outputs.user == 'Limkon' }}
         run: |
           curl -X PATCH \
             -H "Accept: application/vnd.github+json" \
