@@ -82,7 +82,7 @@ EOF
             # 批量删除每个关闭的 Issue
             for ISSUE_ID in $ISSUES; do
               # 生成 GraphQL Mutation
-              MUTATION=$(cat <<EOF
+              CURRENT_MUTATION=$(cat <<EOF
 mutation {
   deleteIssue(input: {issueId: "$ISSUE_ID"}) {
     clientMutationId
@@ -94,7 +94,7 @@ EOF
               echo "Deleting Issue with ID $ISSUE_ID"
               DELETE_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                 -H "Content-Type: application/json" \
-                -X POST -d "{\"query\": \"$MUTATION\"}" \
+                -X POST -d "{\"query\": \"$CURRENT_MUTATION\"}" \
                 "https://api.github.com/graphql")
               
               if [ "$DELETE_RESPONSE" == "{}" ]; then
