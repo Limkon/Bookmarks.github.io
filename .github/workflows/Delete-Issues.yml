@@ -41,9 +41,12 @@ jobs:
           # 遍历所有的 Issue 并删除
           for issue_number in $issues; do
             echo "Deleting Issue #${issue_number}"
-            response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}/${issue_number}")
+            issue_url="${API_URL}/${issue_number}"
+            response=$(curl -s -D - -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${issue_url}")
             if [ "$response" -eq 204 ]; then
               echo "Issue #${issue_number} deleted successfully."
+            elif [ "$response" -eq 404 ]; then
+              echo "Issue #${issue_number} not found (404). It might have already been deleted."
             else
               echo "Failed to delete Issue #${issue_number}. Response code: ${response}"
             fi
