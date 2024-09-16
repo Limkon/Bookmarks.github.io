@@ -13,9 +13,9 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y jq curl
 
-      - name: Delete closed issues
+      - name: Run script to delete closed issues
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}  # 使用正确的 Secret 名称
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}  # 使用 GitHub Token Secret
         run: |
           #!/bin/bash
 
@@ -28,12 +28,21 @@ jobs:
 
           while : ; do
             # 获取当前页的关闭 Issues
-            ISSUES=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-              "https://api.github.com/$REPO/issues?state=closed&per_page=$PER_PAGE&page=$PAGE" \
-              | jq -r '.[].number')
+            RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/issues?state=closed&per_page=$PER_PAGE&page=$PAGE")
+
+            # 检查 API 响应是否为 JSON
+            if echo "$RESPONSE" | jq empty; then
+              ISSUES=$(echo "$RESPONSE" | jq -r '.[].number')
+            else
+              echo "Failed to retrieve issues. API response is not valid JSON."
+              echo "Response: $RESPONSE"
+              exit 1
+            fi
 
             # 如果没有更多的 Issue，则退出循环
             if [ -z "$ISSUES" ]; then
+              echo "No more issues to delete."
               break
             fi
 
@@ -41,7 +50,8 @@ jobs:
             for ISSUE in $ISSUES; do
               echo "Deleting Issue #$ISSUE"
               RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-                "https://api.github.com/$REPO/issues/$ISSUE")
+                "https://api.github.com/repos/$REPO/issues/$ISSUE")
+              
               if [ "$RESPONSE" -ne 204 ]; then
                 echo "Failed to delete Issue #$ISSUE. HTTP status code: $RESPONSE"
               else
