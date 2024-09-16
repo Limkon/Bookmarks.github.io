@@ -26,43 +26,108 @@ jobs:
 
           PAGE=1
           PER_PAGE=100
+          AFTER_CURSOR=""
 
           # GraphQL 查询模板
           QUERY=$(cat <<EOF
-          {
-            repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
-              issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
-                edges {
-                  node {
-                    id
-                  }
-                }
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-              }
-            }
-          }
-          EOF
+{
+  repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
+    issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
+      edges {
+        node {
+          id
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+EOF
           )
 
           # GraphQL Mutation 模板
           MUTATION=$(cat <<EOF
-          mutation {
-            deleteIssue(input: {issueId: "ID"}) {
-              clientMutationId
-            }
-          }
-          EOF
+mutation {
+  deleteIssue(input: {issueId: "ID"}) {
+    clientMutationId
+  }
+}
+EOF
           )
 
           while : ; do
             # 执行 GraphQL 查询以获取关闭的 Issues
             RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
               -H "Content-Type: application/json" \
-              -X POST -d "{\"query\": \"${QUERY//\"/\\\"}\"}" \
+              -X POST -d "{\"query\": \"$QUERY\"}" \
               "https://api.github.com/graphql")
 
             # 打印 API 响应以便调试
-            
+            echo "API Response: $RESPONSE"
+
+            # 解析 JSON 响应
+            ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id // empty')
+            HAS_NEXT_PAGE=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.hasNextPage')
+            AFTER_CURSOR=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.endCursor')
+
+            # 如果没有更多的 Issue，则退出循环
+            if [ -z "$ISSUES" ]; then
+              echo "No more issues to delete."
+              break
+            fi
+
+            # 批量删除每个关闭的 Issue
+            for ISSUE_ID in $ISSUES; do
+              # 生成 GraphQL Mutation
+              MUTATION=$(cat <<EOF
+mutation {
+  deleteIssue(input: {issueId: "$ISSUE_ID"}) {
+    clientMutationId
+  }
+}
+EOF
+              )
+
+              echo "Deleting Issue with ID $ISSUE_ID"
+              DELETE_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                -H "Content-Type: application/json" \
+                -X POST -d "{\"query\": \"$MUTATION\"}" \
+                "https://api.github.com/graphql")
+              
+              if [ "$DELETE_RESPONSE" == "{}" ]; then
+                echo "Successfully deleted Issue with ID $ISSUE_ID"
+              else
+                echo "Failed to delete Issue with ID $ISSUE_ID. Response: $DELETE_RESPONSE"
+              fi
+            done
+
+            # 如果还有更多的 Issue，则继续获取
+            if [ "$HAS_NEXT_PAGE" == "false" ]; then
+              break
+            fi
+
+            # 更新查询的 cursor
+            QUERY=$(cat <<EOF
+{
+  repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
+    issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
+      edges {
+        node {
+          id
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+EOF
+            )
+          done
+
+          echo "Finished deleting closed issues."
