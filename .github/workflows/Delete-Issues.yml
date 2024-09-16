@@ -1,38 +1,32 @@
-name: Delete All Issues
+#!/bin/bash
 
-on:
-  workflow_dispatch:
+# 设置仓库所有者和名称
+REPO_OWNER="Limkon"
+REPO_NAME="bookmarks"
 
-jobs:
-  delete_issues:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+# GitHub API 令牌
+GITHUB_TOKEN="${MY_GITHUB_TOKEN}"
 
-    - name: Delete All Issues
-      run: |
-        #!/bin/bash
+# GitHub API 端点
+API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues"
 
-        # 设置仓库所有者和名称
-        REPO_OWNER="Limkon"
-        REPO_NAME="bookmarks"
+# 获取所有开放的 Issue
+echo "Fetching all open issues..."
+issues=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}?state=open" | jq -r '.[].number')
 
-        # GitHub API 令牌
-        GITHUB_TOKEN="${{ secrets.MY_GITHUB_TOKEN }}"
+if [ -z "$issues" ]; then
+  echo "No issues found."
+else
+  # 遍历所有的 Issue 并删除
+  for issue_number in $issues; do
+    echo "Deleting Issue #${issue_number}"
+    response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}/${issue_number}")
+    if [ "$response" -eq 204 ]; then
+      echo "Issue #${issue_number} deleted successfully."
+    else
+      echo "Failed to delete Issue #${issue_number}. Response code: ${response}"
+    fi
+  done
+fi
 
-        # GitHub API 端点
-        API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues"
-
-        # 获取所有开放的 Issue
-        issues=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}?state=open" | jq -r '.[].number')
-
-        # 遍历所有的 Issue 并删除
-        for issue_number in $issues; do
-          echo "Deleting Issue #${issue_number}"
-          curl -s -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}/${issue_number}"
-        done
-
-        echo "All Issues have been deleted."
-      env:
-        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+echo "All Issues have been processed."
