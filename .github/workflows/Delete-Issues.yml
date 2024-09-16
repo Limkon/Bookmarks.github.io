@@ -1,4 +1,4 @@
-name: Delete Closed Issues
+name: Delete Closed Issues (GraphQL)
 
 on:
   workflow_dispatch:  # 允许手动触发工作流
@@ -13,32 +13,56 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y jq curl
 
-      - name: Prepare and run script
+      - name: Prepare and run GraphQL script
         run: |
           # 将脚本内容添加到工作目录中
-          cat << 'EOF' > delete-closed-issues.sh
+          cat << 'EOF' > delete-closed-issues-graphql.sh
 #!/bin/bash
 
 # 设置 GitHub 个人访问令牌和仓库信息
 GITHUB_TOKEN="${GITHUB_TOKEN}"
-REPO="Limkon/bookmarks"  # 格式为 "owner/repo"
+REPO_OWNER="Limkon"   # 仓库所有者
+REPO_NAME="bookmarks" # 仓库名称
 
 PAGE=1
 PER_PAGE=100
 
-while : ; do
-  # 获取当前页的关闭 Issues
-  RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-    "https://api.github.com/repos/$REPO/issues?state=closed&per_page=$PER_PAGE&page=$PAGE")
+# GraphQL 查询模板
+QUERY='{
+  repository(owner: "'$REPO_OWNER'", name: "'$REPO_NAME'") {
+    issues(states: CLOSED, first: 100, after: "'$AFTER_CURSOR'") {
+      edges {
+        node {
+          number
+          id
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}'
 
-  # 检查 API 响应是否为 JSON
-  if echo "$RESPONSE" | jq empty; then
-    ISSUES=$(echo "$RESPONSE" | jq -r '.[].number')
-  else
-    echo "Failed to retrieve issues. API response is not valid JSON."
-    echo "Response: $RESPONSE"
-    exit 1
-  fi
+# GraphQL Mutation 模板
+MUTATION='mutation {
+  deleteIssue(input: {issueId: "ID"}) {
+    clientMutationId
+  }
+}'
+
+while : ; do
+  # 执行 GraphQL 查询以获取关闭的 Issues
+  RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Content-Type: application/json" \
+    -X POST -d '{"query": "'"${QUERY//\"/\\\"}"}' \
+    "https://api.github.com/graphql")
+
+  # 解析 JSON 响应
+  ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id')
+  HAS_NEXT_PAGE=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.hasNextPage')
+  AFTER_CURSOR=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.endCursor')
 
   # 如果没有更多的 Issue，则退出循环
   if [ -z "$ISSUES" ]; then
@@ -47,28 +71,31 @@ while : ; do
   fi
 
   # 批量删除每个关闭的 Issue
-  for ISSUE in $ISSUES; do
-    echo "Deleting Issue #$ISSUE"
-    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-      "https://api.github.com/repos/$REPO/issues/$ISSUE")
+  for ISSUE_ID in $ISSUES; do
+    echo "Deleting Issue with ID $ISSUE_ID"
+    RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+      -H "Content-Type: application/json" \
+      -X POST -d '{"query": "'"${MUTATION//ID/$ISSUE_ID}"}' \
+      "https://api.github.com/graphql")
     
-    if [ "$RESPONSE" -ne 204 ]; then
-      echo "Failed to delete Issue #$ISSUE. HTTP status code: $RESPONSE"
-      # 输出响应内容以帮助调试
-      echo "Response content: $(curl -s -X GET -H 'Authorization: token $GITHUB_TOKEN' "https://api.github.com/repos/$REPO/issues/$ISSUE")"
+    if [ "$RESPONSE" == "{}" ]; then
+      echo "Successfully deleted Issue with ID $ISSUE_ID"
     else
-      echo "Successfully deleted Issue #$ISSUE"
+      echo "Failed to delete Issue with ID $ISSUE_ID. Response: $RESPONSE"
     fi
   done
 
-  PAGE=$((PAGE + 1))
+  # 如果还有更多的 Issue，则继续获取
+  if [ "$HAS_NEXT_PAGE" == "false" ]; then
+    break
+  fi
 done
 
 echo "Finished deleting closed issues."
 EOF
-          chmod +x delete-closed-issues.sh
+          chmod +x delete-closed-issues-graphql.sh
 
-      - name: Run script
+      - name: Run GraphQL script
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}  # 使用 Secret 名称
-        run: ./delete-closed-issues.sh
+        run: ./delete-closed-issues-graphql.sh
