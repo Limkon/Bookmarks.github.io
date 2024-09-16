@@ -138,5 +138,9 @@
   {
     "name": "google",
     "url": "https://www.google.com"
+  },
+  {
+    "name": "baidu",
+    "url": "https://www.baidu.com"
   }
 ]
