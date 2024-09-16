@@ -29,7 +29,7 @@ jobs:
           while : ; do
             # 获取当前页的关闭 Issues
             ISSUES=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-              "https://api.github.com/repos/$REPO/issues?state=closed&per_page=$PER_PAGE&page=$PAGE" \
+              "https://api.github.com/$REPO/issues?state=closed&per_page=$PER_PAGE&page=$PAGE" \
               | jq -r '.[].number')
 
             # 如果没有更多的 Issue，则退出循环
@@ -41,7 +41,7 @@ jobs:
             for ISSUE in $ISSUES; do
               echo "Deleting Issue #$ISSUE"
               RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-                "https://api.github.com/repos/$REPO/issues/$ISSUE")
+                "https://api.github.com/$REPO/issues/$ISSUE")
               if [ "$RESPONSE" -ne 204 ]; then
                 echo "Failed to delete Issue #$ISSUE. HTTP status code: $RESPONSE"
               else
