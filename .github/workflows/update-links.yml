@@ -17,16 +17,30 @@ jobs:
           echo "Reading Issue details from GITHUB_EVENT_PATH"
           ISSUE_TITLE=$(jq -r '.issue.title' $GITHUB_EVENT_PATH)
           ISSUE_BODY=$(jq -r '.issue.body' $GITHUB_EVENT_PATH)
+          ISSUE_USER=$(jq -r '.issue.user.login' $GITHUB_EVENT_PATH)
           echo "Title: $ISSUE_TITLE"
           echo "Body: $ISSUE_BODY"
+          echo "User: $ISSUE_USER"
           echo "::set-output name=title::$ISSUE_TITLE"
           echo "::set-output name=body::$ISSUE_BODY"
+          echo "::set-output name=user::$ISSUE_USER"
+
+      - name: Check if user is Limkon
+        if: ${{ steps.issue_details.outputs.user != 'Limkon' }}
+        run: |
+          echo "User is not Limkon. Closing Issue."
+          curl -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -d '{"state":"closed"}' \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}"
+          exit 0
 
       - name: Debug Issue title and body
         run: |
           echo "Issue title: '${{ steps.issue_details.outputs.title }}'"
           echo "Issue body: '${{ steps.issue_details.outputs.body }}'"
-
+        
       - name: Update links.json
         id: update_links
         run: |
@@ -64,7 +78,6 @@ jobs:
           else
             echo "Invalid Issue title. Please use 'add' or 'del'."
             exit 1
-          fi
 
       - name: Commit changes
         run: |
