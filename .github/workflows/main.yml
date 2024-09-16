@@ -11,22 +11,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Get Issue details
-        id: issue
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const issue = context.payload.issue;
-            const title = issue.title ? issue.title.toLowerCase() : "";
-            const body = issue.body ? issue.body.trim() : "";
-            console.log("Title: " + title);
-            console.log("Body: " + body);
-            return { title, body };
+      - name: Read Issue details from GITHUB_EVENT_PATH
+        id: issue_details
+        run: |
+          echo "Reading Issue details from GITHUB_EVENT_PATH"
+          ISSUE_TITLE=$(jq -r '.issue.title' $GITHUB_EVENT_PATH)
+          ISSUE_BODY=$(jq -r '.issue.body' $GITHUB_EVENT_PATH)
+          echo "Title: $ISSUE_TITLE"
+          echo "Body: $ISSUE_BODY"
+          echo "::set-output name=title::$ISSUE_TITLE"
+          echo "::set-output name=body::$ISSUE_BODY"
 
       - name: Debug Issue title and body
         run: |
-          echo "Issue title: '${{ steps.issue.outputs.title }}'"
-          echo "Issue body: '${{ steps.issue.outputs.body }}'"
+          echo "Issue title: '${{ steps.issue_details.outputs.title }}'"
+          echo "Issue body: '${{ steps.issue_details.outputs.body }}'"
 
       - name: Update links.json
         id: update_links
@@ -41,8 +40,8 @@ jobs:
           fi
 
           # Parse Issue data
-          TITLE="${{ steps.issue.outputs.title }}"
-          BODY="${{ steps.issue.outputs.body }}"
+          TITLE="${{ steps.issue_details.outputs.title }}"
+          BODY="${{ steps.issue_details.outputs.body }}"
 
           if [[ "$TITLE" == "add" ]]; then
             # Replace all Chinese commas with English commas and split by comma
