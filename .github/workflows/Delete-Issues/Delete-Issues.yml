@@ -1,0 +1,30 @@
+name: Delete Closed Issues
+
+on:
+  workflow_dispatch:  # 允许手动触发工作流
+
+jobs:
+  delete-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up GitHub token
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "GITHUB_TOKEN=${GITHUB_TOKEN}"
+
+      - name: Install dependencies
+        run: sudo apt-get install -y jq curl
+
+      - name: Download script
+        run: |
+          # 将你的脚本添加到工作目录中
+          echo 'your_script_content_here' > script_name.sh
+          chmod +x script_name.sh
+
+      - name: Run script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./script_name.sh
