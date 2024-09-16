@@ -43,6 +43,8 @@ jobs:
             echo "Deleting Issue #${issue_number}"
             issue_url="${API_URL}/${issue_number}"
             response=$(curl -s -D - -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${issue_url}")
+            echo "Response headers and status code:"
+            echo "$response"
             if [ "$response" -eq 204 ]; then
               echo "Issue #${issue_number} deleted successfully."
             elif [ "$response" -eq 404 ]; then
