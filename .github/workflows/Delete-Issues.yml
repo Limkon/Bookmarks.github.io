@@ -1,132 +1,38 @@
-name: Delete Closed Issues
+name: Delete All Issues
 
 on:
-  workflow_dispatch:  # 允许手动触发工作流
+  workflow_dispatch:
 
 jobs:
-  delete-issues:
+  delete_issues:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: sudo apt-get install -y jq curl
+    - name: Delete All Issues
+      run: |
+        #!/bin/bash
 
-      - name: Prepare and run script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          #!/bin/bash
+        # 设置仓库所有者和名称
+        REPO_OWNER="Limkon"
+        REPO_NAME="bookmarks"
 
-          # 设置 GitHub 个人访问令牌和仓库信息
-          GITHUB_TOKEN="${GITHUB_TOKEN}"
-          REPO_OWNER="Limkon"   # 仓库所有者
-          REPO_NAME="bookmarks" # 仓库名称
-          
-          PAGE=1
-          PER_PAGE=100
-          AFTER_CURSOR=""
-          
-          # GraphQL 查询模板
-          QUERY=$(cat <<EOF
-{
-  repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
-    issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
-      edges {
-        node {
-          id
-        }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-    }
-  }
-}
-EOF
-          )
+        # GitHub API 令牌
+        GITHUB_TOKEN="${{ secrets.MY_GITHUB_TOKEN }}"
 
-          # GraphQL Mutation 模板
-          MUTATION=$(cat <<EOF
-mutation {
-  deleteIssue(input: {issueId: "ID"}) {
-    clientMutationId
-  }
-}
-EOF
-          )
+        # GitHub API 端点
+        API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues"
 
-          while : ; do
-            # 执行 GraphQL 查询以获取关闭的 Issues
-            RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -X POST -d "{\"query\": \"${QUERY//\"/\\\"}\"}" \
-              "https://api.github.com/graphql")
-            
-            # 打印 API 响应以便调试
-            echo "API Response: $RESPONSE"
-            
-            # 解析 JSON 响应
-            ISSUES=$(echo "$RESPONSE" | jq -r '.data.repository.issues.edges[].node.id // empty')
-            HAS_NEXT_PAGE=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.hasNextPage')
-            AFTER_CURSOR=$(echo "$RESPONSE" | jq -r '.data.repository.issues.pageInfo.endCursor')
+        # 获取所有开放的 Issue
+        issues=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}?state=open" | jq -r '.[].number')
 
-            # 如果没有更多的 Issue，则退出循环
-            if [ -z "$ISSUES" ]; then
-              echo "No more issues to delete."
-              break
-            fi
+        # 遍历所有的 Issue 并删除
+        for issue_number in $issues; do
+          echo "Deleting Issue #${issue_number}"
+          curl -s -X DELETE -H "Authorization: token ${GITHUB_TOKEN}" "${API_URL}/${issue_number}"
+        done
 
-            # 批量删除每个关闭的 Issue
-            for ISSUE_ID in $ISSUES; do
-              CURRENT_MUTATION=$(cat <<EOF
-mutation {
-  deleteIssue(input: {issueId: "$ISSUE_ID"}) {
-    clientMutationId
-  }
-}
-EOF
-              )
-
-              echo "Deleting Issue with ID $ISSUE_ID"
-              DELETE_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                -H "Content-Type: application/json" \
-                -X POST -d "{\"query\": \"${CURRENT_MUTATION//\"/\\\"}\"}" \
-                "https://api.github.com/graphql")
-              
-              if [ "$DELETE_RESPONSE" == "{}" ]; then
-                echo "Successfully deleted Issue with ID $ISSUE_ID"
-              else
-                echo "Failed to delete Issue with ID $ISSUE_ID. Response: $DELETE_RESPONSE"
-              fi
-            done
-
-            # 如果还有更多的 Issue，则继续获取
-            if [ "$HAS_NEXT_PAGE" == "false" ]; then
-              break
-            fi
-
-            # 更新查询的 cursor
-            QUERY=$(cat <<EOF
-{
-  repository(owner: "$REPO_OWNER", name: "$REPO_NAME") {
-    issues(states: CLOSED, first: 100, after: "$AFTER_CURSOR") {
-      edges {
-        node {
-          id
-        }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-    }
-  }
-}
-EOF
-            )
-          done
-
-          echo "Finished deleting closed issues."
+        echo "All Issues have been deleted."
+      env:
+        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
