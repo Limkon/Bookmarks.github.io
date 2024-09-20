@@ -13,6 +13,20 @@
             text-align: center;
             color: #333;
         }
+        nav {
+            background-color: #007BFF;
+            padding: 10px;
+            text-align: center;
+        }
+        nav a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: white;
+            font-size: 18px;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
         .container {
             display: flex;
             justify-content: space-between; /* 三列均匀分布 */
@@ -40,8 +54,17 @@
     </style>
 </head>
 <body>
+    <!-- 导航栏 -->
+    <nav>
+        <a href="index.html">主页</a>
+        <a href="about.html">关于我们</a>
+        <a href="contact.html">联系我们</a>
+        <a href="#links">链接列表</a> <!-- 导航到当前页面中的链接列表部分 -->
+    </nav>
+
     <h1>链接列表</h1>
-    <div class="container">
+    
+    <div id="links" class="container">
         <div class="column">
             <ul id="column1"></ul>
         </div>
