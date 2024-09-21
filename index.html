@@ -59,27 +59,9 @@
         <a href="index.html">主页</a>
         <a href="tool/chinese_to_punycode.html">中文转码</a>
         <a href="contact.html">联系我们</a>
-        <a href="#links">链接列表</a> <!-- 导航到当前页面中的链接列表部分 -->
+        <a href="#links">链接列表</a>
     </nav>
 
-    <!-- Default Statcounter code for bookmarks https://jxio.nyc.mn/ -->
-<script type="text/javascript">
-    var sc_project = 13039053; 
-    var sc_invisible = 0; 
-    var sc_security = "8f2c3505"; 
-    var scJsHost = "https://";
-    document.write("<sc" + "ript type='text/javascript' src='" + scJsHost + "statcounter.com/counter/counter.js'></" + "script>");
-</script>
-<noscript>
-    <div class="statcounter">
-        <a title="Web Analytics" href="https://statcounter.com/" target="_blank">
-            <img class="statcounter" src="https://c.statcounter.com/13039053/0/8f2c3505/0/" alt="Web Analytics" referrerPolicy="no-referrer-when-downgrade">
-        </a>
-    </div>
-</noscript>
-<!-- End of Statcounter Code -->
-
-    
     <h1>链接列表</h1>
     
     <div id="links" class="container">
@@ -102,9 +84,8 @@
                 const columns = [document.getElementById('column1'), document.getElementById('column2'), document.getElementById('column3')];
                 let index = 1;
 
-                // 遍历 JSON 数据并动态分配到三列
                 data.forEach((link, i) => {
-                    const columnIndex = i % columns.length;  // 使用取模分配到正确的列
+                    const columnIndex = i % columns.length;
                     const li = document.createElement('li');
                     li.innerHTML = `${index}. <a href="${link.url}" target="_blank">${link.name}</a>`;
                     columns[columnIndex].appendChild(li);
@@ -115,5 +96,22 @@
                 console.error('Error loading links:', error);
             });
     </script>
+
+    <!-- StatCounter Code -->
+    <script type="text/javascript">
+        var sc_project = 13039053; 
+        var sc_invisible = 0; 
+        var sc_security = "8f2c3505"; 
+        var scJsHost = "https://";
+        document.write("<sc" + "ript type='text/javascript' src='" + scJsHost + "statcounter.com/counter/counter.js'></" + "script>");
+    </script>
+    <noscript>
+        <div class="statcounter">
+            <a title="Web Analytics" href="https://statcounter.com/" target="_blank">
+                <img class="statcounter" src="https://c.statcounter.com/13039053/0/8f2c3505/0/" alt="Web Analytics" referrerPolicy="no-referrer-when-downgrade">
+            </a>
+        </div>
+    </noscript>
+    <!-- End of StatCounter Code -->
 </body>
 </html>
