@@ -29,26 +29,25 @@
         }
         .container {
             display: flex;
-            justify-content: space-between; /* 三列均匀分布 */
+            justify-content: center; /* 居中显示 */
             padding: 20px;
         }
-        .container .column {
-            flex: 1;
+        .column {
             margin: 0 10px;
         }
-        .container ul {
+        .column ul {
             list-style: none;
             padding: 0;
         }
-        .container li {
+        .column li {
             margin-bottom: 10px;
             font-size: 16px;
         }
-        .container a {
+        .column a {
             text-decoration: none;
             color: #007BFF;
         }
-        .container a:hover {
+        .column a:hover {
             text-decoration: underline;
         }
     </style>
@@ -66,13 +65,7 @@
     
     <div id="links" class="container">
         <div class="column">
-            <ul id="column1"></ul>
-        </div>
-        <div class="column">
-            <ul id="column2"></ul>
-        </div>
-        <div class="column">
-            <ul id="column3"></ul>
+            <ul id="linkList"></ul> <!-- 更新为单一列表 -->
         </div>
     </div>
 
@@ -81,14 +74,13 @@
         fetch('links.json')
             .then(response => response.json())
             .then(data => {
-                const columns = [document.getElementById('column1'), document.getElementById('column2'), document.getElementById('column3')];
+                const linkList = document.getElementById('linkList');
                 let index = 1;
 
-                data.forEach((link, i) => {
-                    const columnIndex = i % columns.length;
+                data.forEach(link => {
                     const li = document.createElement('li');
                     li.innerHTML = `${index}. <a href="${link.url}" target="_blank">${link.name}</a>`;
-                    columns[columnIndex].appendChild(li);
+                    linkList.appendChild(li);
                     index++;
                 });
             })
