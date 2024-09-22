@@ -29,25 +29,26 @@
         }
         .container {
             display: flex;
-            justify-content: center; /* 居中显示 */
+            justify-content: space-between; /* 三列均匀分布 */
             padding: 20px;
         }
-        .column {
+        .container .column {
+            flex: 1;
             margin: 0 10px;
         }
-        .column ul {
+        .container ul {
             list-style: none;
             padding: 0;
         }
-        .column li {
+        .container li {
             margin-bottom: 10px;
             font-size: 16px;
         }
-        .column a {
+        .container a {
             text-decoration: none;
             color: #007BFF;
         }
-        .column a:hover {
+        .container a:hover {
             text-decoration: underline;
         }
     </style>
@@ -65,7 +66,13 @@
     
     <div id="links" class="container">
         <div class="column">
-            <ul id="linkList"></ul> <!-- 更新为单一列表 -->
+            <ul id="column1"></ul>
+        </div>
+        <div class="column">
+            <ul id="column2"></ul>
+        </div>
+        <div class="column">
+            <ul id="column3"></ul>
         </div>
     </div>
 
@@ -74,13 +81,14 @@
         fetch('links.json')
             .then(response => response.json())
             .then(data => {
-                const linkList = document.getElementById('linkList');
+                const columns = [document.getElementById('column1'), document.getElementById('column2'), document.getElementById('column3')];
                 let index = 1;
 
-                data.forEach(link => {
+                data.forEach((link, i) => {
+                    const columnIndex = i % columns.length;
                     const li = document.createElement('li');
                     li.innerHTML = `${index}. <a href="${link.url}" target="_blank">${link.name}</a>`;
-                    linkList.appendChild(li);
+                    columns[columnIndex].appendChild(li);
                     index++;
                 });
             })
@@ -90,9 +98,9 @@
     </script>
 
     <!-- 访问人数标题 -->
-    <div style="text-align: center; margin-top: 20px;">
+    <div style="text-align: center; margin-top: 20px; position: relative;">
         <h2 style="font-size: 24px;">访问人数</h2>
-        <div class="statcounter">
+        <div class="statcounter" style="position: absolute; left: 50%; transform: translateX(-50%);">
             <a title="Web Analytics" href="https://statcounter.com/" target="_blank">
                 <img class="statcounter" src="https://c.statcounter.com/13039053/0/8f2c3505/0/" alt="Web Analytics" referrerPolicy="no-referrer-when-downgrade" style="width: 150px; height: auto;">
             </a>
